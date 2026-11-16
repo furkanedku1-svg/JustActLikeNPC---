@@ -1,0 +1,22 @@
+{
+  "name": "act-like-npc",
+  "version": "0.1.0",
+  "description": "Tarayıcıda oynanan çok oyunculu saklanma oyunu: NPC gibi davran, bulunma.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node test/sim.js",
+    "test:match": "node test/match.js",
+    "test:abilities": "node test/abilities.js",
+    "test:settings": "node test/settings.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.4"
+  }
+}

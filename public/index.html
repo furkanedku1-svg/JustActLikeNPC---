@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Act Like NPC</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕵️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+  <div class="bg-blob blob-3"></div>
+
+  <!-- Sağ üst köşede ses açma/kapama butonu (tüm ekranlarda erişilebilir) -->
+  <button id="btn-sound" class="btn-sound" type="button" title="Sesi kapat">🔊</button>
+
+  <main class="app">
+    <header class="logo">
+      <span class="logo-emoji">🕵️</span>
+      <h1>Act Like <span>NPC</span></h1>
+      <p class="tagline">Kalabalığa karış. Fark edilme.</p>
+    </header>
+
+    <!-- 1. TAKMA AD -->
+    <section id="screen-nick" class="screen card">
+      <h2>Takma adın ne?</h2>
+      <form id="nick-form" autocomplete="off">
+        <input id="nick-input" type="text" maxlength="16" placeholder="örn. Gölge">
+        <p class="hint"><span id="nick-count">0</span>/16</p>
+        <p id="nick-error" class="error" hidden></p>
+        <button type="submit" class="btn btn-primary">Devam et →</button>
+      </form>
+    </section>
+
+    <!-- 2. ANA MENÜ -->
+    <section id="screen-menu" class="screen card" hidden>
+      <p class="greeting">Merhaba, <strong id="menu-nick"></strong> 👋
+        <a href="#" id="change-nick">(değiştir)</a>
+      </p>
+
+      <button id="btn-create" class="btn btn-primary btn-big">🎮 Oyun Kur</button>
+
+      <div class="divider"><span>ya da</span></div>
+
+      <form id="join-form" autocomplete="off">
+        <label for="code-input">Oda kodu</label>
+        <div class="row">
+          <input id="code-input" type="text" maxlength="4" placeholder="K7QF" class="code-input">
+          <button type="submit" class="btn btn-secondary">Bağlan</button>
+        </div>
+      </form>
+
+      <p id="menu-error" class="error" hidden></p>
+      <p id="menu-info" class="info" hidden></p>
+
+      <div class="menu-footer">
+        <button id="btn-help-menu" type="button" class="btn btn-small">❓ Nasıl oynanır?</button>
+      </div>
+    </section>
+
+    <!-- 4. LOBİ -->
+    <section id="screen-lobby" class="screen card" hidden>
+      <p class="label">Oda kodu</p>
+      <div id="lobby-code" class="room-code"></div>
+      <div class="row row-center">
+        <button id="btn-copy-code" class="btn btn-small">📋 Kodu kopyala</button>
+        <button id="btn-copy-link" class="btn btn-small">🔗 Davet linkini kopyala</button>
+        <button id="btn-help-lobby" type="button" class="btn btn-small">❓ Nasıl oynanır?</button>
+      </div>
+      <p id="copy-feedback" class="info" hidden></p>
+
+      <h3>Oyuncular <span id="player-count" class="pill"></span></h3>
+      <ul id="player-list" class="player-list"></ul>
+
+      <!-- Ok rengi seçimi: her renk sadece 1 oyuncuya ait olabilir -->
+      <div id="color-picker-box" class="color-picker-box">
+        <h3>🔻 Ok Rengin</h3>
+        <div id="color-options" class="color-options"></div>
+      </div>
+
+      <!-- Oyun ayarları: sadece lider değiştirir, herkes görür -->
+      <div id="settings-box" class="settings-box">
+        <h3>⚙️ Oyun Ayarları <span id="settings-lock" class="pill" hidden>🔒 Sadece lider değiştirir</span></h3>
+        <div class="setting-row">
+          <span class="setting-label">Tur sayısı</span>
+          <div class="stepper">
+            <button id="rounds-minus" type="button" class="btn btn-small step-btn" aria-label="Tur sayısını azalt">−</button>
+            <span id="rounds-value" class="step-value">3</span>
+            <button id="rounds-plus" type="button" class="btn btn-small step-btn" aria-label="Tur sayısını artır">+</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Tur süresi</span>
+          <div id="minutes-options" class="seg"></div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">NPC yoğunluğu</span>
+          <div id="density-options" class="seg"></div>
+        </div>
+        <p id="npc-estimate" class="hint npc-estimate"></p>
+      </div>
+
+      <p id="lobby-status" class="hint"></p>
+
+      <div class="row row-center lobby-actions">
+        <button id="btn-ready" class="btn btn-primary btn-big">✅ Hazırım</button>
+        <button id="btn-leave" class="btn btn-danger">🚪 Odadan çık</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- OYUN EKRANI (tam ekran canvas + arayüz) -->
+  <section id="screen-game" class="screen game-screen" hidden>
+    <canvas id="game-canvas"></canvas>
+
+    <div id="top-bar" class="hud hud-top-center"></div>
+
+    <div class="hud hud-top-left">
+      <div id="role-badge" class="role-badge"></div>
+      <div id="role-hint" class="role-hint"></div>
+
+      <!-- Saklanan: görev listesi -->
+      <div id="task-panel" class="task-panel" hidden>
+        <ul id="task-list"></ul>
+        <div id="task-prompt" class="task-prompt" hidden></div>
+      </div>
+
+      <!-- Avcı: silah kilidi -->
+      <div id="gun-panel" class="gun-panel" hidden>
+        <span class="gun-label">🔫 Silah</span>
+        <div class="gun-bar"><div id="gun-fill" class="gun-fill"></div></div>
+        <span id="gun-text" class="gun-text">Hazır</span>
+      </div>
+
+      <!-- Seçilen yetenek butonu (tıklanabilir + Q) -->
+      <button id="skill-btn" class="skill-btn" type="button" hidden>
+        <span class="skill-icon-wrap">
+          <span id="skill-icon" class="skill-icon">✨</span>
+          <!-- Yeniden dolma: dolan halka + geri sayım -->
+          <span id="skill-cd" class="skill-cd" hidden><span id="skill-cd-text" class="skill-cd-text"></span></span>
+        </span>
+        <span class="skill-meta">
+          <strong id="skill-name">Yetenek</strong>
+          <small id="skill-status">Hazır</small>
+        </span>
+        <kbd class="skill-key">Q</kbd>
+      </button>
+
+      <!-- Avcı 2. yetenek butonu: Radar Bombası (tıklanabilir + R) -->
+      <button id="radar-btn" class="skill-btn" type="button" hidden>
+        <span class="skill-icon-wrap">
+          <span id="radar-icon" class="skill-icon">📡</span>
+          <span id="radar-cd" class="skill-cd" hidden><span id="radar-cd-text" class="skill-cd-text"></span></span>
+        </span>
+        <span class="skill-meta">
+          <strong id="radar-name">Radar Bombası</strong>
+          <small id="radar-status">Hazır</small>
+        </span>
+        <kbd class="skill-key">R</kbd>
+      </button>
+
+      <div id="spectator-note" class="spectator-note" hidden>👻 İzleyici modundasın</div>
+    </div>
+
+    <div class="hud scoreboard">
+      <h4>🏆 Puanlar</h4>
+      <ul id="score-list"></ul>
+    </div>
+
+    <div id="notices" class="notices"></div>
+
+    <!-- F3 performans göstergesi (sol alt köşe) -->
+    <div id="perf-hud" class="hud hud-bottom-left perf-hud" hidden>
+      <div>Ekran FPS: <strong id="perf-fps">60</strong></div>
+      <div>Paket/sn: <strong id="perf-pps">20</strong></div>
+      <div>Ping: <strong id="perf-ping">0 ms</strong></div>
+      <div>Son paket: <strong id="perf-size">0.00 KB</strong></div>
+      <div>Çizim süresi: <strong id="perf-draw">0.00 ms</strong></div>
+    </div>
+
+    <!-- Tur başı 10 sn yetenek seçimi -->
+    <div id="skill-pick" class="skill-pick" hidden>
+      <div class="skill-pick-card">
+        <div class="skill-pick-head">
+          <span id="pick-role-pill" class="pick-role-pill"></span>
+          <span id="pick-timer" class="pick-timer">⏱ 10</span>
+        </div>
+        <p id="pick-round" class="pick-round"></p>
+        <h2 id="pick-title">Yeteneğini Seç</h2>
+        <p id="pick-sub" class="pick-sub">Kimse başkasının yeteneğini görmez. Süre bitince rastgele verilir.</p>
+        <div id="skill-cards" class="skill-cards"></div>
+      </div>
+    </div>
+
+    <!-- Tur sonu / final liderlik tablosu ekranı -->
+    <div id="overlay" class="overlay" hidden>
+      <div id="overlay-card" class="overlay-card">
+        <h2 id="overlay-title"></h2>
+        <p id="overlay-sub"></p>
+        <table id="overlay-table" class="overlay-table"></table>
+        <div id="overlay-actions" class="overlay-actions" hidden>
+          <button id="btn-back-lobby" type="button" class="btn btn-primary">🏠 Lobiye dön</button>
+        </div>
+        <p id="overlay-foot" class="overlay-foot"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- NASIL OYNANIR PENCERESİ -->
+  <div id="help-modal" class="modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <h2 id="help-title">📖 Nasıl Oynanır?</h2>
+
+      <div class="help-grid">
+        <div class="help-col help-hider">
+          <h3>🕵️ Saklanan</h3>
+          <ul>
+            <li><strong>🎮 Kontroller:</strong> <code>WASD</code> / Oklar yürü · <code>E</code> görev · <code>Q</code> yetenek</li>
+            <li><strong>📋 Görev sırası:</strong> 💎 Haritadaki herhangi 3 elması topla (E ile anında; ~%40'ı kapalı alanlardadır ve <strong>avcı kapalı alandaki elmasları da her zaman görür</strong>) → 🗿 Açık alandaki 6 heykelden birini incele (3 sn) → 🎯 VIP</li>
+            <li><strong>👑 Aktif VIP (3 vuruş):</strong> Heykel görevini bitirdiğinde VIP'n <strong>aktif</strong> olur; bu andan itibaren <strong>avcı da VIP'yi (kapalı alanlarda bile) üstünde 👑 ve 3 çentikli can göstergesiyle görür</strong>. Yanında (30 br) her <code>E</code> 1 çentik düşürür; avcı canın azaldığını görebilir, dikkat!</li>
+            <li><strong>🎭 NPC gibi davran:</strong> Kısa kısa yürü, ara sıra dur, çatı altlarına ya da elmas/heykel yanına uğra. NPC'ler de heykel inceler.</li>
+            <li><strong>✨ Yetenekler:</strong> 👕 Kıyafet Değiştirme (2 hak) · 🌫️ Sis Bombası (10 sn avcıdan gizler, hak sınırı yok; attıktan <strong>15 sn</strong> sonra yeniden dolar)</li>
+          </ul>
+        </div>
+
+        <div class="help-col help-seeker">
+          <h3>🔫 Avcı</h3>
+          <ul>
+            <li><strong>🎯 Ateş ve VIP cezası:</strong> Fareyle tıkla. Masum NPC <strong>−2 puan</strong> (2 sn kilit); boşa atış <strong>0,5 sn</strong> kilit. <strong>Aktif VIP'yi (👑) vurursan −10 puan</strong> ve 2 sn kilit alırsın, saklanana tam canlı yeni VIP atanır!</li>
+            <li><strong>🔍 Kapalı alanlar, elmaslar ve VIP'ler:</strong> Çatı altındaki karakterleri sadece nişangâhın <strong>80 br</strong> çevresinde görürsün; fakat <strong>kapalı alanlardaki elmasları ve aktif VIP'leri (👑 + 3 çentik can) nişangâh olmadan da her zaman görürsün</strong>.</li>
+            <li><strong>🧹 Kalabalığı Azalt (<code>Q</code>):</strong> Turda 1 hak; son <strong>1:30</strong>'da (kısa turlarda sürenin yarısı kala) açılır ve hayatta olan NPC'lerin <strong>%20</strong>'sini siler.</li>
+            <li><strong>📡 Radar Bombası (<code>R</code>):</strong> <code>R</code> ile nişan al, haritada tıkla. <strong>0,8 sn</strong>'de düşer; <strong>130 br</strong> daire içindeki canlı gerçek oyuncuların (çatı ve sis içindekiler dahil, NPC/VIP hariç) sayısını <strong>3 sn</strong> boyunca sadece sana gösterir. (<strong>15 sn</strong> bekleme süresi, sınırsız kullanım)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="help-scores">
+        <h4>⚙️ Lobi Ayarları</h4>
+        <p class="help-text">Lobi lideri <strong>tur sayısını (1–10)</strong>, <strong>tur süresini (1–5 dk)</strong> ve <strong>NPC yoğunluğunu (Az / Normal / Çok)</strong> seçer; ayar değişince herkesin hazırlığı sıfırlanır. Her tur sıradaki oyuncu avcı olur; tur sayısı oyuncu sayısından fazlaysa sıra baştan başlar.</p>
+      </div>
+
+      <div class="help-scores">
+        <h4>🏆 Puan Tablosu</h4>
+        <div class="score-badges">
+          <span>💎 Elmas: <b>+3</b></span>
+          <span>🗿 Heykel: <b>+4</b></span>
+          <span>🎯 VIP: <b>+5</b></span>
+          <span>⏱ Hayatta Kal: <b>+2</b></span>
+          <span>🔫 Yakala: <b>+5</b></span>
+          <span>💥 Masum NPC: <b class="bad">−2</b></span>
+          <span>👑 VIP Vurma: <b class="bad">−10</b></span>
+        </div>
+      </div>
+
+      <button id="btn-help-close" type="button" class="btn btn-primary btn-big">Anladım</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="sound.js"></script>
+  <script src="game.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>
